@@ -15,21 +15,27 @@ use Symfony\Component\DependencyInjection\Loader;
 class NeoFusionJsonRpcExtension extends Extension
 {
     /**
-     * {@inheritdoc}
+     * @param array $configs
+     * @param ContainerBuilder $container
+     * @throws \Exception
      */
     public function load(array $configs, ContainerBuilder $container)
     {
         $configuration = new Configuration();
-        $config = $this->processConfiguration($configuration, $configs);
+        $config        = $this->processConfiguration($configuration, $configs);
 
         $container->setParameter('neofusion_jsonrpc', $config);
 
-        $loader = new Loader\YamlFileLoader($container, new FileLocator(__DIR__.'/../Resources/config'));
+        $loader = new Loader\YamlFileLoader($container, new FileLocator(__DIR__ . '/../Resources/config'));
         $loader->load('services.yml');
     }
 
+    /**
+     * @return string
+     */
     public function getAlias()
     {
         return 'neofusion_jsonrpc';
     }
+
 }

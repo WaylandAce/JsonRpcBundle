@@ -83,7 +83,7 @@ class JsonRpcError implements JsonRpcInterface
     /**
      * @return array
      */
-    public function toArray()
+    public function toArray(): array
     {
         $result = array(
             'code'    => $this->code,

@@ -15,7 +15,7 @@ class ServerControllerTest extends WebTestCase
     public function testRequest($jsonRequest, $jsonResponse)
     {
         $client = static::createClient();
-        $client->request('POST', '/api/test', array(), array(), array(), $jsonRequest);
+        $client->request('POST', '/api/test', [], [], [], $jsonRequest);
         $this->assertEquals(200, $client->getResponse()->getStatusCode());
         $this->assertEquals($jsonResponse, $client->getResponse()->getContent());
     }

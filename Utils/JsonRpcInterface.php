@@ -4,5 +4,8 @@ namespace NeoFusion\JsonRpcBundle\Utils;
 
 interface JsonRpcInterface
 {
-    public function toArray();
+    /**
+     * @return array
+     */
+    public function toArray(): array;
 }

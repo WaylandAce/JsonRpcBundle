@@ -6,16 +6,26 @@ use Symfony\Component\Config\Loader\Loader;
 use Symfony\Component\Routing\Route;
 use Symfony\Component\Routing\RouteCollection;
 
+
 class ExtraLoader extends Loader
 {
     private $loaded = false;
     private $config;
 
+    /**
+     * ExtraLoader constructor.
+     * @param array $config
+     */
     public function __construct(array $config)
     {
         $this->config = $config;
     }
 
+    /**
+     * @param mixed $resource
+     * @param null $type
+     * @return RouteCollection
+     */
     public function load($resource, $type = null)
     {
         if (true === $this->loaded) {
@@ -36,8 +46,14 @@ class ExtraLoader extends Loader
         return $routes;
     }
 
+    /**
+     * @param mixed $resource
+     * @param null $type
+     * @return bool
+     */
     public function supports($resource, $type = null)
     {
         return 'extra' === $type;
     }
+
 }

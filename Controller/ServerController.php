@@ -4,6 +4,7 @@ namespace NeoFusion\JsonRpcBundle\Controller;
 
 use NeoFusion\JsonRpcBundle\Utils\JsonRpcBatchResponse;
 use NeoFusion\JsonRpcBundle\Utils\JsonRpcError;
+use NeoFusion\JsonRpcBundle\Utils\JsonRpcException;
 use NeoFusion\JsonRpcBundle\Utils\JsonRpcInterface;
 use NeoFusion\JsonRpcBundle\Utils\JsonRpcSingleRequest;
 use NeoFusion\JsonRpcBundle\Utils\JsonRpcSingleResponse;
@@ -13,20 +14,21 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
+
 class ServerController extends Controller
 {
     /**
      * Entry point for handler of API requests
      *
      * @param Request $request
-     * @param string  $route   Route name
+     * @param string $route Route name
      *
      * @return Response|JsonResponse
      */
-    public function processAction(Request $request, $route)
+    public function processAction(Request $request, $route): Response
     {
         $content = $request->getContent();
-        $answer = $this->processContent($content, $route);
+        $answer  = $this->processContent($content, $route);
 
         return ($answer === null) ? new Response() : new JsonResponse($answer);
     }
@@ -35,21 +37,23 @@ class ServerController extends Controller
      * Request body content processor
      *
      * @param string $content Request body content
-     * @param string $route   Route name
+     * @param string $route Route name
      *
      * @return array|null
      */
-    private function processContent($content, $route)
+    private function processContent(string $content, string $route): ?array
     {
         $jsonArray = json_decode($content, true);
         // Checking for JSON parsing errors
         if ($jsonArray === null) {
             $jsonRpcSingleResponse = new JsonRpcSingleResponse(null, new JsonRpcError(JsonRpcError::CODE_PARSE_ERROR));
+
             return $jsonRpcSingleResponse->toArray();
         }
         // Checking for array is not empty
-        if (!(is_array($jsonArray) && !empty($jsonArray))) {
+        if (! (is_array($jsonArray) && ! empty($jsonArray))) {
             $jsonRpcSingleResponse = new JsonRpcSingleResponse(null, new JsonRpcError(JsonRpcError::CODE_INVALID_REQUEST));
+
             return $jsonRpcSingleResponse->toArray();
         }
         // Getting array type
@@ -57,12 +61,12 @@ class ServerController extends Controller
         // Making requests depending on array type
         if ($isAssoc) {
             $singleResult = $this->processSingleJsonArray($jsonArray, $route);
-            $answer = ($singleResult instanceof JsonRpcInterface) ? $singleResult->toArray() : null;
+            $answer       = ($singleResult instanceof JsonRpcInterface) ? $singleResult->toArray() : null;
         } else {
             $batchResult = new JsonRpcBatchResponse();
             foreach ($jsonArray as $singleJsonArray) {
                 // Checking for array is not empty
-                if (!(is_array($singleJsonArray) && !empty($singleJsonArray))) {
+                if (! (is_array($singleJsonArray) && ! empty($singleJsonArray))) {
                     $jsonRpcSingleResponse = new JsonRpcSingleResponse(null, new JsonRpcError(JsonRpcError::CODE_INVALID_REQUEST));
                     $batchResult->addResponse($jsonRpcSingleResponse);
                 } else {
@@ -85,25 +89,25 @@ class ServerController extends Controller
      *
      * @return JsonRpcSingleRequest
      */
-    private function prepareSingleRequest(array $singleJsonArray)
+    private function prepareSingleRequest(array $singleJsonArray): JsonRpcSingleRequest
     {
         return new JsonRpcSingleRequest(
             array_key_exists('jsonrpc', $singleJsonArray) ? $singleJsonArray['jsonrpc'] : null,
-            array_key_exists('method',  $singleJsonArray) ? $singleJsonArray['method']  : null,
-            array_key_exists('params',  $singleJsonArray) ? $singleJsonArray['params']  : null,
-            array_key_exists('id',      $singleJsonArray) ? $singleJsonArray['id']      : null
+            array_key_exists('method', $singleJsonArray) ? $singleJsonArray['method'] : null,
+            array_key_exists('params', $singleJsonArray) ? $singleJsonArray['params'] : null,
+            array_key_exists('id', $singleJsonArray) ? $singleJsonArray['id'] : null
         );
     }
 
     /**
      * Processing array of JSON data
      *
-     * @param array  $singleJsonArray
-     * @param string $route           Route name
+     * @param array $singleJsonArray
+     * @param string $route Route name
      *
      * @return JsonRpcSingleResponse|null NULL, if JsonRpcSingleRequest is Notification
      */
-    private function processSingleJsonArray(array $singleJsonArray, $route)
+    private function processSingleJsonArray(array $singleJsonArray, string $route): ?JsonRpcSingleResponse
     {
         $jsonRpcSingleRequest = $this->prepareSingleRequest($singleJsonArray);
         if ($jsonRpcSingleRequest->isValid()) {
@@ -121,16 +125,16 @@ class ServerController extends Controller
      * Making a single request
      *
      * @param JsonRpcSingleRequest $request
-     * @param string               $route   Route name
+     * @param string $route Route name
      *
      * @return JsonRpcSingleResponse
      */
-    private function processSingleRequest(JsonRpcSingleRequest $request, $route)
+    private function processSingleRequest(JsonRpcSingleRequest $request, $route): JsonRpcSingleResponse
     {
         $jsonRpcParams = $this->getParameter('neofusion_jsonrpc');
-        $methods = $jsonRpcParams['routing'][$route]['methods'];
+        $methods       = $jsonRpcParams['routing'][$route]['methods'];
         // Checking for method presence in the list
-        if (!array_key_exists($request->getMethod(), $methods)) {
+        if (! array_key_exists($request->getMethod(), $methods)) {
             return new JsonRpcSingleResponse(null, new JsonRpcError(JsonRpcError::CODE_METHOD_NOT_FOUND), $request->getId());
         }
         $method = $methods[$request->getMethod()];
@@ -142,7 +146,7 @@ class ServerController extends Controller
             return new JsonRpcSingleResponse(null, new JsonRpcError(JsonRpcError::CODE_SERVER_ERROR), $request->getId());
         }
         // Checking for method presence
-        if (!is_callable(array($service, $action))) {
+        if (! is_callable(array($service, $action))) {
             return new JsonRpcSingleResponse(null, new JsonRpcError(JsonRpcError::CODE_METHOD_NOT_FOUND), $request->getId());
         }
         // Calling the method
@@ -156,7 +160,8 @@ class ServerController extends Controller
                 $code = JsonRpcError::CODE_SERVER_ERROR;
             }
             // If an exception has `getData` method and it doesn't return null, pass `data` as an array
-            if (is_callable(array($e, 'getData')) && $e->getData() !== null) {
+//            if (is_callable(array($e, 'getData')) && $e->getData() !== null) {
+            if ($e instanceof JsonRpcException) {
                 $data = array(
                     'code'    => $e->getCode(),
                     'message' => $e->getMessage(),
@@ -169,6 +174,7 @@ class ServerController extends Controller
                     $data = $e->getMessage();
                 }
             }
+
             return new JsonRpcSingleResponse(null, new JsonRpcError($code, null, $data), $request->getId());
         }
 
@@ -182,8 +188,9 @@ class ServerController extends Controller
      *
      * @return bool True, if associative
      */
-    private function isAssocArray($arr)
+    private function isAssocArray($arr): bool
     {
         return array_keys($arr) !== range(0, count($arr) - 1);
     }
+
 }

@@ -17,7 +17,7 @@ class JsonRpcBatchResponse implements JsonRpcInterface
     /**
      * @return array
      */
-    public function toArray()
+    public function toArray(): array
     {
         $result = array();
         /** @var JsonRpcSingleResponse $response */
@@ -30,7 +30,7 @@ class JsonRpcBatchResponse implements JsonRpcInterface
     /**
      * @return bool
      */
-    public function isEmpty()
+    public function isEmpty(): bool
     {
         return count($this->responses) === 0;
     }
