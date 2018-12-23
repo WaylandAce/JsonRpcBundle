@@ -151,7 +151,10 @@ class ServerController extends Controller
         }
         // Calling the method
         try {
-            $result = $service->$action($request->getParams());
+            $reflection = new \ReflectionMethod(get_class($service), $action);
+            $args       = $this->prepareArgs($reflection, $request->getParams());
+            $result     = $reflection->invokeArgs($service, $args);
+
         } catch (\Exception $e) {
             // If error code exists in JsonRpcError list, than use it. Otherwise using standard CODE_SERVER_ERROR
             if (array_key_exists($e->getCode(), JsonRpcError::$errorMessages)) {
@@ -190,6 +193,105 @@ class ServerController extends Controller
      */
     private function isAssocArray($arr): bool
     {
+        return array_keys($arr) !== range(0, count($arr) - 1);
+    }
+
+    /**
+     * @param \ReflectionMethod $reflection
+     * @param array $params
+     * @return array
+     * @throws \ReflectionException
+     * @throws \Exception
+     */
+    private function prepareArgs(\ReflectionMethod $reflection, array $params): array
+    {
+        $types         = $this->getTypes($reflection);
+        $isNamedParams = $this->isAssoc($params);
+        $args          = [];
+
+        /** @var \ReflectionParameter $parameter */
+        foreach ($reflection->getParameters() as $k => $parameter) {
+            $key = $isNamedParams ? $parameter->getName() : $k;
+
+            if ($parameter->hasType() && ! $parameter->getType()->isBuiltin()) {
+                throw new \Exception('Parameter "' . $parameter->getName() . '" is cant resolve');
+//                $args[$parameter->getName()] = app()->make((string)$parameter->getType());
+            } else {
+
+                if (! $parameter->isDefaultValueAvailable() && ! isset($params[$k])) {
+                    throw new \Exception('Parameter "' . $parameter->getName() . '" is mandatory');
+                }
+
+                if (isset($params[$key])) {
+                    $value = $params[$key];
+
+                    if (isset($types[$key])) {
+                        switch ($types[$key]) {
+                            case 'string':
+                                if (! is_string($value)) {
+                                    throw new \Exception('Parameter "' . $parameter->getName() . '" must be string');
+                                }
+                                break;
+                            case 'bool':
+                                // cast to bool, if needed
+                                if ($value === 1 || $value === 0 || $value === "1" || $value === "0") {
+                                    $value = (bool)($value);
+                                }
+
+                                if (! is_bool($value)) {
+                                    throw new \Exception('Parameter "' . $parameter->getName() . '" must be bool');
+                                }
+                                break;
+                            case 'int':
+                                if (! is_numeric($value)) {
+                                    throw new \Exception('Parameter "' . $parameter->getName() . '" must be numeric');
+                                }
+                                break;
+                            case 'array':
+                                if (! is_array($value)) {
+                                    throw new \Exception('Parameter "' . $parameter->getName() . '" must be array');
+                                }
+                                break;
+                        }
+                    }
+
+                    $args[$parameter->getName()] = $value;
+                } else {
+                    $args[$parameter->getName()] = $parameter->getDefaultValue();
+                }
+            }
+        }
+
+        return $args;
+    }
+
+    /**
+     * @param \ReflectionMethod $reflection
+     * @return array
+     */
+    private function getTypes(\ReflectionMethod $reflection): array
+    {
+        $types = [];
+
+        foreach ($reflection->getParameters() as $parameter) {
+            if ($parameter->hasType()) {
+                $types[$parameter->getName()] = strval($parameter->getType());
+            }
+        }
+
+        return $types;
+    }
+
+    /**
+     * @param array $arr
+     * @return bool
+     */
+    private function isAssoc(array $arr): bool
+    {
+        if (array() === $arr) {
+            return false;
+        }
+
         return array_keys($arr) !== range(0, count($arr) - 1);
     }
 
