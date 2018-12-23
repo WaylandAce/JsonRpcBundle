@@ -1,3 +1,4 @@
 neofusion_jsonrpc:
-    resource: .
-    type:     extra
+    resource: "@NeoFusionJsonRpcBundle/Controller/ServerController.php"
+    prefix: /
+    type: annotation

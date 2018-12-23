@@ -3,8 +3,3 @@ services:
         autowire: true
         autoconfigure: true
         public: true
-    neofusion_jsonrpc.routing_loader:
-        class: NeoFusion\JsonRpcBundle\Routing\ExtraLoader
-        arguments: ['%neofusion_jsonrpc%']
-        tags:
-            - { name: routing.loader }

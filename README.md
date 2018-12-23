@@ -52,33 +52,26 @@ class AppKernel extends Kernel
 
 ### Step 3: Configure API methods
 
-You can easily define methods in your configuration file:
+You can easily define methods in your configuration file (config/services.yaml):
 
 ```yaml
-neofusion_jsonrpc:
-    routing:
-        customer:
-            path: /customer
-            methods:
-                comment.create: { service: 'app.api.customer.comment', action: 'create' }
-                comment.delete: { service: 'app.api.customer.comment', action: 'delete' }
+services:
+    App\Api\Auth:
+        public: false
+    
+    app.api.auth:
+        alias: App\Api\Auth
+        public: true
 ```
-
-* `routing` - list of routes
-* `customer` - internal name of a route
-* `path` - second part of URL after prefix
-* `methods` - list of methods
-* `comment.create` - method name
-* `service` - name of a service, which contains callable methods
-* `action` - callable method from the service
 
 ### Step 4: Register the routes
 
 Finally, register this bundle's routes by adding the following to your project's routing file:
 
 ```yaml
-# app/config/routing.yml
+# app/config/routes/neofusion_jsonrpc.yaml
 neofusion_jsonrpc:
-    resource: "@NeoFusionJsonRpcBundle/Resources/config/routing.yml"
-    prefix: /api
+    resource: "@NeoFusionJsonRpcBundle/Controller/ServerController.php"
+    prefix: /
+    type: annotation
 ```
