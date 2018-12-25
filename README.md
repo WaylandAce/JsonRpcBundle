@@ -58,10 +58,10 @@ You can easily define methods in your configuration file (config/services.yaml):
 services:
     App\Api\Auth:
         public: false
+        tags:
+          - { name: 'app.api.json_rpc', alias: 'auth' }
     
-    app.api.auth:
-        alias: App\Api\Auth
-        public: true
+
 ```
 
 ### Step 4: Register the routes
@@ -74,4 +74,15 @@ neofusion_jsonrpc:
     resource: "@NeoFusionJsonRpcBundle/Controller/ServerController.php"
     prefix: /
     type: annotation
+```
+
+### Step 5: Register compiler
+
+```
+# src/Kernel.php
+    protected function build(ContainerBuilder $container)
+    {
+        $container->addCompilerPass(new JsonRpcPass());
+    }
+
 ```
