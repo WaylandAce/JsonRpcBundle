@@ -2,6 +2,7 @@
 
 namespace NeoFusion\JsonRpcBundle\Controller;
 
+use NeoFusion\JsonRpcBundle\DependencyInjection\ServiceList;
 use NeoFusion\JsonRpcBundle\Utils\JsonRpcBatchResponse;
 use NeoFusion\JsonRpcBundle\Utils\JsonRpcError;
 use NeoFusion\JsonRpcBundle\Utils\JsonRpcException;
@@ -134,7 +135,12 @@ class ServerController extends Controller
 
         // Checking for service presence
         try {
-            $service = $this->get('app.api.' . $serviceName);
+            /** @var ServiceList $test */
+            $test    = $this->get(ServiceList::class);
+            $service = $test->getService($serviceName);
+            if (! $service) {
+                throw new ServiceNotFoundException('Service not found');
+            }
         } catch (ServiceNotFoundException $e) {
             return new JsonRpcSingleResponse(null, new JsonRpcError(JsonRpcError::CODE_METHOD_NOT_FOUND), $request->getId());
         }
