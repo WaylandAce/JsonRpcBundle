@@ -213,51 +213,50 @@ class ServerController extends Controller
 
             if ($parameter->hasType() && ! $parameter->getType()->isBuiltin()) {
                 throw new \Exception('Parameter "' . $parameter->getName() . '" is cant resolve');
-//                $args[$parameter->getName()] = app()->make((string)$parameter->getType());
-            } else {
-
-                if (! $parameter->isDefaultValueAvailable() && ! isset($params[$k])) {
-                    throw new \Exception('Parameter "' . $parameter->getName() . '" is mandatory');
-                }
-
-                if (isset($params[$key])) {
-                    $value = $params[$key];
-
-                    if (isset($types[$key])) {
-                        switch ($types[$key]) {
-                            case 'string':
-                                if (! is_string($value)) {
-                                    throw new \Exception('Parameter "' . $parameter->getName() . '" must be string');
-                                }
-                                break;
-                            case 'bool':
-                                // cast to bool, if needed
-                                if ($value === 1 || $value === 0 || $value === "1" || $value === "0") {
-                                    $value = (bool)($value);
-                                }
-
-                                if (! is_bool($value)) {
-                                    throw new \Exception('Parameter "' . $parameter->getName() . '" must be bool');
-                                }
-                                break;
-                            case 'int':
-                                if (! is_numeric($value)) {
-                                    throw new \Exception('Parameter "' . $parameter->getName() . '" must be numeric');
-                                }
-                                break;
-                            case 'array':
-                                if (! is_array($value)) {
-                                    throw new \Exception('Parameter "' . $parameter->getName() . '" must be array');
-                                }
-                                break;
-                        }
-                    }
-
-                    $args[$parameter->getName()] = $value;
-                } else {
-                    $args[$parameter->getName()] = $parameter->getDefaultValue();
-                }
             }
+
+            if (! $parameter->isDefaultValueAvailable() && ! isset($params[$key])) {
+                throw new \Exception('Parameter "' . $parameter->getName() . '" is mandatory');
+            }
+
+            if (isset($params[$key])) {
+                $value = $params[$key];
+
+                if (isset($types[$key])) {
+                    switch ($types[$key]) {
+                        case 'string':
+                            if (! is_string($value)) {
+                                throw new \Exception('Parameter "' . $parameter->getName() . '" must be string');
+                            }
+                            break;
+                        case 'bool':
+                            // cast to bool, if needed
+                            if ($value === 1 || $value === 0 || $value === "1" || $value === "0") {
+                                $value = (bool)($value);
+                            }
+
+                            if (! is_bool($value)) {
+                                throw new \Exception('Parameter "' . $parameter->getName() . '" must be bool');
+                            }
+                            break;
+                        case 'int':
+                            if (! is_numeric($value)) {
+                                throw new \Exception('Parameter "' . $parameter->getName() . '" must be numeric');
+                            }
+                            break;
+                        case 'array':
+                            if (! is_array($value)) {
+                                throw new \Exception('Parameter "' . $parameter->getName() . '" must be array');
+                            }
+                            break;
+                    }
+                }
+
+                $args[$parameter->getName()] = $value;
+            } else {
+                $args[$parameter->getName()] = $parameter->getDefaultValue();
+            }
+
         }
 
         return $args;
@@ -286,7 +285,7 @@ class ServerController extends Controller
      */
     private function isAssoc(array $arr): bool
     {
-        if (array() === $arr) {
+        if ([] === $arr) {
             return false;
         }
 
