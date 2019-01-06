@@ -38,4 +38,12 @@ class ServiceList
         return null;
     }
 
+    /**
+     * @return array
+     */
+    public function getList(): array
+    {
+        return $this->services;
+    }
+
 }

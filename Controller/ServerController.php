@@ -9,16 +9,22 @@ use NeoFusion\JsonRpcBundle\Utils\JsonRpcException;
 use NeoFusion\JsonRpcBundle\Utils\JsonRpcInterface;
 use NeoFusion\JsonRpcBundle\Utils\JsonRpcSingleRequest;
 use NeoFusion\JsonRpcBundle\Utils\JsonRpcSingleResponse;
+use phpDocumentor\Reflection\DocBlock\Tag;
+use phpDocumentor\Reflection\DocBlock\Tags\Param;
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
 use Symfony\Component\DependencyInjection\Exception\ServiceNotFoundException;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use phpDocumentor\Reflection\DocBlockFactory;
 
 
 class ServerController extends Controller
 {
+    /** @var DocBlockFactory */
+    protected $factory;
+
     /**
      * @Route("/json_rpc")
      *
@@ -27,14 +33,117 @@ class ServerController extends Controller
      * @param Request $request
      *
      * @return Response|JsonResponse
+     * @throws \ReflectionException
      */
     public function processAction(Request $request): Response
     {
         $content = $request->getContent();
-        $answer  = $this->processContent($content);
+
+        if ($request->request->has('smd')) {
+
+            $answer = $this->processSmd();
+        } else {
+            $answer = $this->processContent($content);
+        }
 
         return ($answer === null) ? new Response() : new JsonResponse($answer);
     }
+
+    /**
+     * @return array
+     * @throws \ReflectionException
+     */
+    private function processSmd(): array
+    {
+        /** @var ServiceList $test */
+        $test     = $this->get(ServiceList::class);
+        $response = [
+            'services'   => [],
+            'deprecated' => []
+        ];
+
+        $this->factory = DocBlockFactory::createInstance();
+
+        foreach ($test as $serviceName => $service) {
+
+            $reflection = new \ReflectionClass($service);
+            foreach ($this->getMethods($reflection) as $method) {
+                $methodData = $this->scanMethod($method);
+                if (is_null($methodData)) {
+                    continue;
+                }
+
+                $response['services'][$serviceName][$method->getName()] = $methodData;
+            }
+        }
+
+        return $response;
+    }
+
+    /**
+     * @param \ReflectionClass $reflection
+     * @return \Generator|\ReflectionMethod[]
+     */
+    public function getMethods(\ReflectionClass $reflection)
+    {
+        foreach ($reflection->getMethods(\ReflectionMethod::IS_PUBLIC) as $method) {
+            if (in_array($method->getName(), ['__construct'])) {
+                continue;
+            }
+
+            yield $method;
+        }
+    }
+
+    /**
+     * @param \ReflectionMethod $method
+     * @return array|null
+     * @throws \ReflectionException
+     */
+    public function scanMethod(\ReflectionMethod $method): ?array {
+
+        $methodData = [];
+        $params     = [];
+
+        if ($method->getDocComment() !== false) {
+            $docBlock = $this->factory->create($method->getDocComment());
+
+            /** @var Tag|Param $tag */
+            foreach ($docBlock->getTags() as $tag) {
+                if ($tag->getName() == 'ignore') {
+                    return null;
+                }
+
+                if ($tag->getName() == 'param') {
+                    $params[$tag->getVariableName()] = $tag;
+                }
+            }
+
+            $methodData['description'] = $docBlock->getSummary();
+        }
+
+        $methodData['params'] = [];
+
+        $types = $this->getTypes($method);
+
+        foreach ($method->getParameters() as $parameter) {
+            if ($parameter->hasType() && ! $parameter->getType()->isBuiltin()) {
+                continue;
+            }
+
+            $description = isset($params[$parameter->getName()]) ? (string)$params[$parameter->getName()]->getDescription() : null;
+
+            $methodData['params'][$parameter->getName()] = [
+                'description'  => $description,
+                'typeHint'     => $types[$parameter->getName()] ?? null,
+                'optional'     => $parameter->isDefaultValueAvailable(),
+                'defaultValue' => $parameter->isOptional() ? var_export($parameter->getDefaultValue(), true) : '-'
+            ];
+        }
+
+        return $methodData;
+    }
+
 
     /**
      * Request body content processor
